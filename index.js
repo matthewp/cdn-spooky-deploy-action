@@ -24,13 +24,9 @@ const PKG_NAME = core.getInput('pkg', {
   required: true
 });
 
-console.log("INFO", github.context.ref, PKG_NAME, SOURCE_DIR);
+const VERSION = github.context.ref.replace(/refs\/tags\/(v*)/, "");
 
-/*
-
-const DESTINATION_DIR = core.getInput('destination_dir', {
-  required: false
-});
+const DESTINATION_DIR = path.join(PKG_NAME, VERSION);
 
 const s3 = new S3({
   accessKeyId: AWS_KEY_ID,
@@ -74,12 +70,8 @@ run()
   .then(locations => {
     core.info(`object key - ${destinationDir}`);
     core.info(`object locations - ${locations}`);
-    core.setOutput('object_key', destinationDir);
-    core.setOutput('object_locations', locations);
   })
   .catch(err => {
     core.error(err);
     core.setFailed(err.message);
   });
-
-*/
