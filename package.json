@@ -2,15 +2,22 @@
   "name": "cdn-spooky-deploy-action",
   "description": "Deploy to the cdn",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
   "license": "Proprietary",
   "repository": "https://github.com/matthewp/cdn-spooky-deploy-action",
   "author": "Matthew Phillips",
   "dependencies": {
     "@actions/core": "^1.2.6",
+    "@actions/github": "^5.0.0",
     "aws-sdk": "^2.641.0",
     "klaw-sync": "^6.0.0",
     "mime-types": "^2.1.26",
     "shortid": "^2.2.15"
+  },
+  "devDependencies": {
+    "@zeit/ncc": "^0.21.1"
+  },
+  "scripts": {
+    "package": "ncc build index.js -o dist"
   }
 }
