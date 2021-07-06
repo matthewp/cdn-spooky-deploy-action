@@ -1,0 +1,26 @@
+name: cdn.spooky.click Deploy
+description: Deploy to cdn.spooky.click
+inputs:
+  pkg:
+    description: Name of the package
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Set tag
+      run: echo "RELEASE_TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+    - name: Set version
+      run: |
+        id=$(echo "$RELEASE_TAG" | cut -dv -f2)
+        echo "RELEASE_VERSION=$id" >> $GITHUB_ENV
+    - name: Set folder
+      run: |
+        folder=$(echo "${{ inputs.pkg }}/$RELEASE_VERSION")
+        echo "DEST_DIR=$folder" >> $GITHUB_ENV
+    - uses: shallwefootball/s3-upload-action@master
+      with:
+        aws_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
+        aws_bucket: 'cdn.spooky.click'
+        source_dir: 'lib'
+        destination_dir: ${{ env.DEST_DIR }}
