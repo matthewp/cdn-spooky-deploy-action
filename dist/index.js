@@ -1393,7 +1393,9 @@ function updateInfo() {
         info = JSON.parse(json);
       }
       info.latest = VERSION;
-      info.versions.push(VERSION);
+      const versions = new Set(info.versions);
+      versions.add(VERSION);
+      info.versions = Array.from(versions);
       s3.putObject({
         Body: JSON.stringify(info),
         ACL: 'public-read',
