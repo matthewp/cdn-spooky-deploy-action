@@ -108,7 +108,7 @@ function run() {
     })
   );
   let infoUpdate = updateInfo();
-  return Promise.all(fileUploads, infoUpdate);
+  return Promise.all([fileUploads, infoUpdate]);
 }
 
 run()
