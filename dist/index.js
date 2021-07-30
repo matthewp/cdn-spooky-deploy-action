@@ -1362,6 +1362,7 @@ const PKG_NAME = core.getInput('pkg', {
 const VERSION = github.context.ref.replace(/refs\/tags\/(v*)/, "");
 
 const DESTINATION_DIR = path.join(PKG_NAME, VERSION);
+const INFO_FILE = path.join(PKG_NAME, "info.json");
 
 const s3 = new S3({
   accessKeyId: AWS_KEY_ID,
@@ -1372,10 +1373,51 @@ const paths = klawSync(SOURCE_DIR, {
   nodir: true
 });
 
+function updateInfo() {
+  const key = 'ocean/info.json';
+  return new Promise((resolve, reject) => {
+    s3.getObject({
+      Bucket: BUCKET,
+      Key: key
+    }, (err, data) => {
+      let info;
+      if(err) {
+        if(err.code === 'NoSuchKey') {
+          info = { versions: [] };
+        } else {
+          reject(err);
+          return;
+        }
+      } else {
+        let json = data.Body.toString('utf-8');
+        info = JSON.parse(json);
+      }
+      info.latest = VERSION;
+      info.versions.push(VERSION);
+      s3.putObject({
+        Body: JSON.stringify(info),
+        ACL: 'public-read',
+        Bucket: BUCKET,
+        Key: key,
+        ContentType: 'application/json'
+      }, (err) => {
+        if(err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  })
+}
+
 function upload(params) {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     s3.upload(params, (err, data) => {
-      if (err) core.error(err);
+      if (err) {
+        core.error(err);
+        return reject(err);
+      }
       core.info(`uploaded - ${data.Key}`);
       core.info(`located - ${data.Location}`);
       resolve(data.Location);
@@ -1385,7 +1427,7 @@ function upload(params) {
 
 function run() {
   const sourceDir = path.join(process.cwd(), SOURCE_DIR);
-  return Promise.all(
+  let fileUploads = Promise.all(
     paths.map(p => {
       const fileStream = fs.createReadStream(p.path);
       const bucketPath = path.join(destinationDir, path.relative(sourceDir, p.path));
@@ -1394,11 +1436,14 @@ function run() {
         ACL: 'public-read',
         Body: fileStream,
         Key: bucketPath,
+        CacheControl: 'public,max-age=31536000,immutable',
         ContentType: lookup(p.path) || 'text/plain'
       };
       return upload(params);
     })
   );
+  let infoUpdate = updateInfo();
+  return Promise.all(fileUploads, infoUpdate);
 }
 
 run()
