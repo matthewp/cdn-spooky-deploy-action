@@ -1374,16 +1374,15 @@ const paths = klawSync(SOURCE_DIR, {
 });
 
 function updateInfo() {
-  const key = 'ocean/info.json';
   return new Promise((resolve, reject) => {
     s3.getObject({
       Bucket: BUCKET,
-      Key: key
+      Key: INFO_FILE
     }, (err, data) => {
       let info;
       if(err) {
         if(err.code === 'NoSuchKey') {
-          info = { versions: [] };
+          info = { tags: {}, versions: [] };
         } else {
           reject(err);
           return;
@@ -1392,15 +1391,14 @@ function updateInfo() {
         let json = data.Body.toString('utf-8');
         info = JSON.parse(json);
       }
-      info.latest = VERSION;
+      info.tags.latest = VERSION;
       const versions = new Set(info.versions);
       versions.add(VERSION);
       info.versions = Array.from(versions);
       s3.putObject({
         Body: JSON.stringify(info),
-        ACL: 'public-read',
         Bucket: BUCKET,
-        Key: key,
+        Key: INFO_FILE,
         ContentType: 'application/json'
       }, (err) => {
         if(err) {
@@ -1435,7 +1433,6 @@ function run() {
       const bucketPath = path.join(destinationDir, path.relative(sourceDir, p.path));
       const params = {
         Bucket: BUCKET,
-        ACL: 'public-read',
         Body: fileStream,
         Key: bucketPath,
         CacheControl: 'public,max-age=31536000,immutable',
