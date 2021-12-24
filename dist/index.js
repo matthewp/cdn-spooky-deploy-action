@@ -1342,7 +1342,9 @@ const shortid = __webpack_require__(354);
 const klawSync = __webpack_require__(502);
 const { lookup } = __webpack_require__(779);
 
-const BUCKET = 'cdn.spooky.click';
+const SPOOKY_BUCKET = 'cdn.spooky.click';
+
+const BUCKET = core.getInput('host') || SPOOKY_BUCKET;
 
 const AWS_KEY_ID = core.getInput('key_id', {
   required: true

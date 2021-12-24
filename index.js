@@ -7,7 +7,9 @@ const shortid = require('shortid');
 const klawSync = require('klaw-sync');
 const { lookup } = require('mime-types');
 
-const BUCKET = 'cdn.spooky.click';
+const SPOOKY_BUCKET = 'cdn.spooky.click';
+
+const BUCKET = core.getInput('host') || SPOOKY_BUCKET;
 
 const AWS_KEY_ID = core.getInput('key_id', {
   required: true
