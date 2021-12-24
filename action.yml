@@ -13,6 +13,9 @@ inputs:
   source:
     description: Folder containing the code
     required: true
+  host:
+    description: The host for the deployment. Defaults to cdn.spooky.click
+    required: false
 runs:
   using: 'node12'
   main: 'dist/index.js'
