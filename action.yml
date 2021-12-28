@@ -16,6 +16,9 @@ inputs:
   host:
     description: The host for the deployment. Defaults to cdn.spooky.click
     required: false
+  version:
+    description: The version to release. Defaults to using the tag.
+    required: false
 runs:
   using: 'node12'
   main: 'dist/index.js'

@@ -26,7 +26,8 @@ const PKG_NAME = core.getInput('pkg', {
   required: true
 });
 
-const VERSION = github.context.ref.replace(/refs\/tags\/(v*)/, "");
+const VERSION = core.getInput('version') ||
+  github.context.ref.replace(/refs\/tags\/(v*)/, "");
 
 const DESTINATION_DIR = path.join(PKG_NAME, VERSION);
 const INFO_FILE = path.join(PKG_NAME, "info.json");
