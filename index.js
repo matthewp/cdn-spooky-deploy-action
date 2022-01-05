@@ -6,6 +6,7 @@ const path = require('path');
 const shortid = require('shortid');
 const klawSync = require('klaw-sync');
 const { lookup } = require('mime-types');
+const zlib = require('zlib');
 
 const SPOOKY_BUCKET = 'cdn.spooky.click';
 
@@ -97,14 +98,23 @@ function run() {
   const sourceDir = path.join(process.cwd(), SOURCE_DIR);
   let fileUploads = Promise.all(
     paths.map(p => {
-      const fileStream = fs.createReadStream(p.path);
+      let fileStream = fs.createReadStream(p.path);
       const bucketPath = path.join(destinationDir, path.relative(sourceDir, p.path));
+      let contentType = lookup(p.path) || 'text/plain';
+      let contentEncoding = undefined;
+      if(contentType === 'application/wasm') {
+        core.info(`Compressing wasm ${p.path} with brotli`);
+        fileStream = fileStream.pipe(zlib.createBrotliCompress());
+        contentEncoding = 'br';
+      }
+
       const params = {
         Bucket: BUCKET,
         Body: fileStream,
         Key: bucketPath,
         CacheControl: 'public,max-age=31536000,immutable',
-        ContentType: lookup(p.path) || 'text/plain'
+        ContentType: contentType,
+        ContentEncoding: contentEncoding
       };
       return upload(params);
     })
