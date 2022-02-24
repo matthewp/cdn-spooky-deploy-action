@@ -1437,8 +1437,8 @@ function updateSymlink() {
       let [,major] = match;
       let file = `v${major}`;
       let content = `export * from 'https://${HOST}/${DESTINATION_DIR}/${ENTRY_MODULE}';
-      import * as mod from 'https://${HOST}/${DESTINATION_DIR}/${ENTRY_MODULE}';
-      export default mod.default || null;`
+import * as mod from 'https://${HOST}/${DESTINATION_DIR}/${ENTRY_MODULE}';
+export default mod.default || null;`
       let key = path.join(PKG_NAME, file);
       s3.putObject({
         Body: content,
