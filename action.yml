@@ -19,6 +19,12 @@ inputs:
   version:
     description: The version to release. Defaults to using the tag.
     required: false
+  symlink:
+    description: Provide a symlink for this version.
+    required: false
+  entry_module:
+    description: The entry module for the package.
+    required: false
 runs:
   using: 'node12'
   main: 'dist/index.js'

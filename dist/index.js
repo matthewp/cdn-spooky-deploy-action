@@ -1344,8 +1344,9 @@ const { lookup } = __webpack_require__(779);
 const zlib = __webpack_require__(761);
 
 const SPOOKY_BUCKET = 'cdn.spooky.click';
+const HOST = core.getInput('host') || SPOOKY_BUCKET;
 
-const BUCKET = core.getInput('host') || SPOOKY_BUCKET;
+const BUCKET = HOST;
 
 const AWS_KEY_ID = core.getInput('key_id', {
   required: true
@@ -1362,11 +1363,25 @@ const PKG_NAME = core.getInput('pkg', {
   required: true
 });
 
+const SYMLINK = core.getInput('symlink', {
+  required: false
+});
+
+const ENTRY_MODULE = core.getInput('entry_module', {
+  required: false
+});
+
+if(SYMLINK && !ENTRY_MODULE) {
+  throw new Error('An entry_module must be provided to create a version symlink.');
+}
+
 const VERSION = core.getInput('version') ||
   github.context.ref.replace(/refs\/tags\/(v*)/, "");
 
 const DESTINATION_DIR = path.join(PKG_NAME, VERSION);
 const INFO_FILE = path.join(PKG_NAME, "info.json");
+
+const VERSION_EXPRESSION = /^([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/;
 
 const s3 = new S3({
   accessKeyId: AWS_KEY_ID,
@@ -1415,6 +1430,33 @@ function updateInfo() {
   })
 }
 
+function updateSymlink() {
+  return new Promise((resolve, reject) => {
+    let match = VERSION_EXPRESSION.exec(VERSION);
+    if(match) {
+      let [,major] = match;
+      let file = `v${major}`;
+      let content = `export * from 'https://${HOST}/${DESTINATION_DIR}/${ENTRY_MODULE}';
+      import * as mod from 'https://${HOST}/${DESTINATION_DIR}/${ENTRY_MODULE}';
+      export default mod.default || null;`
+      let key = path.join(PKG_NAME, file);
+      s3.putObject({
+        Body: content,
+        Bucket: BUCKET,
+        Key: key,
+        ContentType: 'text/javascript',
+        CacheControl: 'public,max-age=3600',
+      }, (err) => {
+        if(err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    }
+  });
+}
+
 function upload(params) {
   return new Promise((resolve, reject) => {
     s3.upload(params, (err, data) => {
@@ -1448,14 +1490,17 @@ function run() {
         Body: fileStream,
         Key: bucketPath,
         CacheControl: 'public,max-age=31536000,immutable',
-        ContentType: contentType,
-        ContentEncoding: contentEncoding
+        ContentType: contentType
       };
+      if(contentEncoding) {
+        params.ContentEncoding = contentEncoding;
+      }
       return upload(params);
     })
   );
   let infoUpdate = updateInfo();
-  return Promise.all([fileUploads, infoUpdate]);
+  let symUpdate = SYMLINK ? updateSymlink() : Promise.resolve();
+  return Promise.all([fileUploads, infoUpdate, symUpdate]);
 }
 
 run()
