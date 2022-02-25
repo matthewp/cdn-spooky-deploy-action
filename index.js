@@ -32,18 +32,12 @@ const SYMLINK = core.getInput('symlink', {
   required: false
 });
 
-let ENTRIES = [];
-for(let n of ['entry1', 'entry2']) {
-  let val = core.getInput(n, {
-    required: false
-  });
-  if(val) {
-    ENTRIES.push(val);
-  }
-}
+const ENTRY = core.getInput('entry', {
+  required: false
+});
 
-if(SYMLINK && !ENTRIES.length) {
-  throw new Error('An entries property must be provided to create a version symlink.');
+if(SYMLINK && !ENTRY) {
+  throw new Error('An entry property must be provided to create a version symlink.');
 }
 
 const VERSION = core.getInput('version') ||
@@ -108,56 +102,19 @@ function updateSymlink() {
   let [,major] = match;
   let vpath = `v${major}`;
 
-  function mainSymlink() {
-    let mainEntry = ENTRIES[0];
-    let content = `export * from 'https://${HOST}/${DESTINATION_DIR}/${mainEntry}';
+  let mainEntry = ENTRY;
+  let content = `export * from 'https://${HOST}/${DESTINATION_DIR}/${mainEntry}';
 import * as mod from 'https://${HOST}/${DESTINATION_DIR}/${mainEntry}';
 export default mod.default || null;`
-    
-    let key = path.join(PKG_NAME, vpath);
-    return upload({
-      Body: content,
-      Bucket: BUCKET,
-      Key: key,
-      ContentType: 'text/javascript',
-      CacheControl: 'public,max-age=3600',
-    });
-  }
-
-  function entry(entryName) {
-    let type = entryName.endsWith('.js') ?
-      'js' : entryName.endsWith('.wasm') ?
-      'wasm' : 'plain';
-    let content = '';
-    switch(type) {
-      case 'js': {
-        content = `export * from 'https://${HOST}/${DESTINATION_DIR}/${entryName}';
-import * as mod from 'https://${HOST}/${DESTINATION_DIR}/${entryName}';
-export default mod.default || null;`
-        break;
-      }
-    }
-
-    let key = path.join(PKG_NAME, vpath, entryName);
-    let params = {
-      Body: content,
-      Bucket: BUCKET,
-      Key: key,
-      ContentType: 'text/javascript',
-      CacheControl: 'public,max-age=3600',
-    };
-
-    if(type === 'wasm') {
-      delete params.ContentType;
-      params.WebsiteRedirectLocation = `/${DESTINATION_DIR}/${entryName}`;
-    }
-
-    return upload(params);
-  }
-
-  let entriesPromises = ENTRIES.map(entry);
-  let symPromise = mainSymlink();
-  return Promise.all(entriesPromises.concat(symPromise));
+  
+  let key = path.join(PKG_NAME, vpath);
+  return upload({
+    Body: content,
+    Bucket: BUCKET,
+    Key: key,
+    ContentType: 'text/javascript',
+    CacheControl: 'public,max-age=3600',
+  });
 }
 
 function upload(params) {
