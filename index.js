@@ -32,11 +32,17 @@ const SYMLINK = core.getInput('symlink', {
   required: false
 });
 
-const ENTRIES = core.getInput('entries', {
-  required: false
-});
+let ENTRIES = [];
+for(let n of ['entry1', 'entry2']) {
+  let val = core.getInput(n, {
+    required: false
+  });
+  if(val) {
+    entries.push(val);
+  }
+}
 
-if(SYMLINK && !ENTRIES) {
+if(SYMLINK && !ENTRIES.length) {
   throw new Error('An entries property must be provided to create a version symlink.');
 }
 

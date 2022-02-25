@@ -22,8 +22,11 @@ inputs:
   symlink:
     description: Provide a symlink for this version.
     required: false
-  entries:
-    description: The entry module for the package.
+  entry1:
+    description: The first entry
+    required: false
+  entry2:
+    description: The second entry.
     required: false
 runs:
   using: 'node12'
