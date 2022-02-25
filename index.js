@@ -111,8 +111,8 @@ function updateSymlink() {
   function mainSymlink() {
     let mainEntry = ENTRIES[0];
     let content = `export * from 'https://${HOST}/${DESTINATION_DIR}/${mainEntry}';
-    import * as mod from 'https://${HOST}/${DESTINATION_DIR}/${mainEntry}';
-    export default mod.default || null;`
+import * as mod from 'https://${HOST}/${DESTINATION_DIR}/${mainEntry}';
+export default mod.default || null;`
     
     let key = path.join(PKG_NAME, vpath);
     return upload({
