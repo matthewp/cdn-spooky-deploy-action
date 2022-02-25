@@ -1367,12 +1367,12 @@ const SYMLINK = core.getInput('symlink', {
   required: false
 });
 
-const ENTRY_MODULE = core.getInput('entry_module', {
+const ENTRIES = core.getInput('entries', {
   required: false
 });
 
-if(SYMLINK && !ENTRY_MODULE) {
-  throw new Error('An entry_module must be provided to create a version symlink.');
+if(SYMLINK && !ENTRIES) {
+  throw new Error('An entries property must be provided to create a version symlink.');
 }
 
 const VERSION = core.getInput('version') ||
@@ -1431,15 +1431,16 @@ function updateInfo() {
 }
 
 function updateSymlink() {
-  return new Promise((resolve, reject) => {
-    let match = VERSION_EXPRESSION.exec(VERSION);
-    if(match) {
-      let [,major] = match;
-      let file = `v${major}`;
-      let content = `export * from 'https://${HOST}/${DESTINATION_DIR}/${ENTRY_MODULE}';
-import * as mod from 'https://${HOST}/${DESTINATION_DIR}/${ENTRY_MODULE}';
-export default mod.default || null;`
-      let key = path.join(PKG_NAME, file);
+  let [,major] = match;
+  let vpath = `v${major}`;
+  let mainEntry = entries[0];
+
+  function mainSymlink() {
+    let content = `export * from 'https://${HOST}/${DESTINATION_DIR}/${mainEntry}';
+    import * as mod from 'https://${HOST}/${DESTINATION_DIR}/${mainEntry}';
+    export default mod.default || null;`
+    return new Promise((resolve, reject) => {
+      let key = path.join(PKG_NAME, vpath);
       s3.putObject({
         Body: content,
         Bucket: BUCKET,
@@ -1453,8 +1454,57 @@ export default mod.default || null;`
           resolve();
         }
       });
-    }
-  });
+    });
+  }
+
+  function entry(entryName) {
+    return new Promise((resolve, reject) => {
+      let type = entryName.endsWith('.js') ?
+        'js' : entryName.endsWith('.wasm') ?
+        'wasm' : 'plain';
+      let content = '';
+      switch(type) {
+        case 'js': {
+          content = `export * from 'https://${HOST}/${DESTINATION_DIR}/${entryName}';
+import * as mod from 'https://${HOST}/${DESTINATION_DIR}/${entryName}';
+export default mod.default || null;`
+          break;
+        }
+      }
+
+      let key = path.join(PKG_NAME, vpath, entryName);
+      let params = {
+        Body: content,
+        Bucket: BUCKET,
+        Key: key,
+        ContentType: 'text/javascript',
+        CacheControl: 'public,max-age=3600',
+      };
+
+      if(type === 'wasm') {
+        delete params.ContentType;
+        params.Metadata = {
+          'x-amz-website-redirect-location': `https://${HOST}/${DESTINATION_DIR}/${entryName}`
+        };
+      }
+
+      s3.putObject(params, (err) => {
+        if(err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
+  let match = VERSION_EXPRESSION.exec(VERSION);
+  if(match) {
+    let entriesPromises = ENTRIES.map(entry);
+    let symPromise = mainSymlink();
+    return Promise.all(entriesPromises.concat(symPromise));
+  }
+  return Promise.resolve();
 }
 
 function upload(params) {

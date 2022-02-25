@@ -22,7 +22,7 @@ inputs:
   symlink:
     description: Provide a symlink for this version.
     required: false
-  entry_module:
+  entries:
     description: The entry module for the package.
     required: false
 runs:
