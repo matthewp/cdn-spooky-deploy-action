@@ -1448,63 +1448,48 @@ function updateSymlink() {
     let content = `export * from 'https://${HOST}/${DESTINATION_DIR}/${mainEntry}';
     import * as mod from 'https://${HOST}/${DESTINATION_DIR}/${mainEntry}';
     export default mod.default || null;`
-    return new Promise((resolve, reject) => {
-      let key = path.join(PKG_NAME, vpath);
-      s3.putObject({
-        Body: content,
-        Bucket: BUCKET,
-        Key: key,
-        ContentType: 'text/javascript',
-        CacheControl: 'public,max-age=3600',
-      }, (err) => {
-        if(err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
+    
+    let key = path.join(PKG_NAME, vpath);
+    return upload({
+      Body: content,
+      Bucket: BUCKET,
+      Key: key,
+      ContentType: 'text/javascript',
+      CacheControl: 'public,max-age=3600',
     });
   }
 
   function entry(entryName) {
-    return new Promise((resolve, reject) => {
-      let type = entryName.endsWith('.js') ?
-        'js' : entryName.endsWith('.wasm') ?
-        'wasm' : 'plain';
-      let content = '';
-      switch(type) {
-        case 'js': {
-          content = `export * from 'https://${HOST}/${DESTINATION_DIR}/${entryName}';
+    let type = entryName.endsWith('.js') ?
+      'js' : entryName.endsWith('.wasm') ?
+      'wasm' : 'plain';
+    let content = '';
+    switch(type) {
+      case 'js': {
+        content = `export * from 'https://${HOST}/${DESTINATION_DIR}/${entryName}';
 import * as mod from 'https://${HOST}/${DESTINATION_DIR}/${entryName}';
 export default mod.default || null;`
-          break;
-        }
+        break;
       }
+    }
 
-      let key = path.join(PKG_NAME, vpath, entryName);
-      let params = {
-        Body: content,
-        Bucket: BUCKET,
-        Key: key,
-        ContentType: 'text/javascript',
-        CacheControl: 'public,max-age=3600',
+    let key = path.join(PKG_NAME, vpath, entryName);
+    let params = {
+      Body: content,
+      Bucket: BUCKET,
+      Key: key,
+      ContentType: 'text/javascript',
+      CacheControl: 'public,max-age=3600',
+    };
+
+    if(type === 'wasm') {
+      delete params.ContentType;
+      params.Metadata = {
+        'x-amz-website-redirect-location': `https://${HOST}/${DESTINATION_DIR}/${entryName}`
       };
+    }
 
-      if(type === 'wasm') {
-        delete params.ContentType;
-        params.Metadata = {
-          'x-amz-website-redirect-location': `https://${HOST}/${DESTINATION_DIR}/${entryName}`
-        };
-      }
-
-      s3.putObject(params, (err) => {
-        if(err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
+    return upload(params);
   }
 
   let entriesPromises = ENTRIES.map(entry);
