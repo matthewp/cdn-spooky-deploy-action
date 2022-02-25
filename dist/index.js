@@ -1373,7 +1373,7 @@ for(let n of ['entry1', 'entry2']) {
     required: false
   });
   if(val) {
-    entries.push(val);
+    ENTRIES.push(val);
   }
 }
 
