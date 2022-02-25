@@ -1484,9 +1484,7 @@ export default mod.default || null;`
 
     if(type === 'wasm') {
       delete params.ContentType;
-      params.Metadata = {
-        'x-amz-website-redirect-location': `https://${HOST}/${DESTINATION_DIR}/${entryName}`
-      };
+      params.WebsiteRedirectLocation = `/${DESTINATION_DIR}/${entryName}`;
     }
 
     return upload(params);
