@@ -1442,9 +1442,9 @@ function updateSymlink() {
 
   let [,major] = match;
   let vpath = `v${major}`;
-  let mainEntry = entries[0];
 
   function mainSymlink() {
+    let mainEntry = ENTRIES[0];
     let content = `export * from 'https://${HOST}/${DESTINATION_DIR}/${mainEntry}';
     import * as mod from 'https://${HOST}/${DESTINATION_DIR}/${mainEntry}';
     export default mod.default || null;`
