@@ -1437,6 +1437,9 @@ function updateInfo() {
 }
 
 function updateSymlink() {
+  let match = VERSION_EXPRESSION.exec(VERSION);
+  if(!match) return Promise.resolve();
+
   let [,major] = match;
   let vpath = `v${major}`;
   let mainEntry = entries[0];
@@ -1504,13 +1507,9 @@ export default mod.default || null;`
     });
   }
 
-  let match = VERSION_EXPRESSION.exec(VERSION);
-  if(match) {
-    let entriesPromises = ENTRIES.map(entry);
-    let symPromise = mainSymlink();
-    return Promise.all(entriesPromises.concat(symPromise));
-  }
-  return Promise.resolve();
+  let entriesPromises = ENTRIES.map(entry);
+  let symPromise = mainSymlink();
+  return Promise.all(entriesPromises.concat(symPromise));
 }
 
 function upload(params) {
